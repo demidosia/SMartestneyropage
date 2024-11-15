@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест по математике с нейросетью</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <img src="image/smartest.png" alt="Логотип сайта" >
+    <style>
+        h1{
+            text-align: center;
+        }
+        
+        img {
+				width: 400px;
+				height: auto;
+                
+		}
+        body {
+            font-family: Arial, sans-serif;
+            
+            color:rgb(139, 105, 207);
+            
+        }
+        input {
+            margin: 5px;
+            color:rgb(139, 105, 207);
+            text-align:center;
+        }
+        .question {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        button{
+            display: block;
+			margin: 0 auto;
+        }
+        h2 {
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест по математике</h1>
+    <form id="quizForm">
+        <div class="question">
+            <label id="question1"></label>
+            <input type="number" step = "0.001" id="answer1" required>
+        </div>
+        <div class="question">
+            <label id="question2"></label>
+            <input type="number" step = "0.001" id="answer2" required>
+        </div>
+        <div class="question">
+            <label id="question3"></label>
+            <input type="number" step = "0.001" id="answer3" required>
+        </div>
+        <div class="question">
+            <label id="question4"></label>
+            <input type="number" step = "0.001" id="answer4" required>
+        </div>
+        <div class="question">
+            <label id="question5"></label>
+            <input type="number" step = "0.001" id="answer5" required>
+        </div>
+        <div class="question">
+            <label id="question6"></label>
+            <input type="number" step = "0.001" id="answer6" required>
+        </div>
+        <div class="question">
+            <label id="question7"></label>
+            <input type="number" step = "0.001" id="answer7" required>
+        </div>
+        <div class="question">
+            <label id="question8"></label>
+            <input type="number" step = "0.001" id="answer8" required>
+        </div>
+        <button type="submit">Проверить ответы</button>
+    </form>
+
+    <h2 id="result"></h2>
+
+    <script>
+        let questions = [];
+        let correctAnswers = [];
+
+        // Генерация вопросов
+        function generateQuestions() {
+            for (let i = 0; i < 8; i++) {
+                const num1 = Math.floor(Math.random() * 20);
+                const num2 = Math.floor(Math.random() * 20);
+                const num3 = Math.floor(Math.random() * 10)
+                const num4 = Math.floor(1)
+                const operator = ['+', '-', '*',':','+ -','+ +','- -','- +','* +','+ *','* -'][Math.floor(Math.random() * 11)];
+                let question;
+
+                switch (operator) {
+                    case '+':
+                        question = `${num1} + ${num2} = ?`;
+                        correctAnswers.push(num1 + num2);
+                        break;
+                    case '-':
+                        question = `${num1} - ${num2} = ?`;
+                        correctAnswers.push(num1 - num2);
+                        break;
+                    case '*':
+                        question = `${num1} * ${num2} = ?`;
+                        correctAnswers.push(num1 * num2);
+                        break;
+                    case ':':
+                        question = `${num3} : ${num4} = ?`; 
+                        correctAnswers.push(num3 / num4);
+                        break
+                    case '+ -':
+                        question = `${num1} + ${num2} - ${num3} = ?`;
+                        correctAnswers.push(num1 + num2 - num3);
+                        break
+                    case '+ +':
+                        question = `${num1} + ${num2} + ${num3} = ?`;
+                        correctAnswers.push(num1 + num2 + num3);
+                        break
+                    case '- -':
+                        question = `${num1} - ${num2} - ${num3} = ?`;
+                        correctAnswers.push(num1 - num2 - num3);
+                        break
+                    case '- +':
+                        question = `${num1} - ${num2} + ${num3} = ?`;
+                        correctAnswers.push(num1 - num2 + num3);
+                        break
+                    case '* +':
+                        question = `${num1} * ${num2} + ${num3} = ?`;
+                        correctAnswers.push(num1 * num2 + num3);
+                        break
+                    case '+ *':
+                        question = `${num1} + ${num2} * ${num3} = ?`;
+                        correctAnswers.push(num3 * num2 + num1);
+                        break
+                    case '* -':
+                        question = `${num1} * ${num2} - ${num3} = ?`;
+                        correctAnswers.push(num1 * num2 - num3);
+                        break                
+                }
+
+                questions.push(question);
+                document.getElementById(`question${i + 1}`).innerText = question;
+            }
+        }
+
+        // Создание модели нейросети
+        function createModel() {
+            const model = tf.sequential();
+            model.add(tf.layers.dense({ units: 10, activation: 'relu', inputShape: [8] }));
+            model.add(tf.layers.dense({ units: 4, activation: 'softmax' }));
+            model.compile({ optimizer: 'adam', loss: 'sparseCategoricalCrossentropy', metrics: ['accuracy'] });
+            return model;
+        }
+
+        // Обучение модели
+        async function trainModel() {
+            const trainingInputs = tf.tensor2d([correctAnswers]);
+            const trainingOutputs = tf.tensor1d([Math.floor(correctAnswers.length / 4)]); // Здесь можно улучшить выходные данные
+
+            const model = createModel();
+            await model.fit(trainingInputs, trainingOutputs, { epochs: 100 });
+            return model;
+        }
+
+        // Проверка ответов
+        function checkAnswers(model, userAnswers) {
+            const inputTensor = tf.tensor2d([userAnswers]);
+            const prediction = model.predict(inputTensor).argMax(1);
+            
+            prediction.array().then(predictedClass => {
+                const results = [
+                    "Плохо, у тебя не получилось решить ни один пример, попробуй ещё раз",
+                    "Неплохо! Но тебе нужно стремится к максимальному результату, попробуй найти у себя ошибки и ввести ответы ещё раз",
+                    "Отлично! Ты правильно ответил на все вопросы!"
+                ];
+
+                const correctCount = userAnswers.filter((answer, index) => answer === correctAnswers[index]).length;
+
+                document.getElementById('result').innerText = results[correctCount === 8 ? 2 : 
+                                                                       correctCount > 0 ? 1 : 0];
+            });
+        }
+
+        // Инициализация теста и обработка формы
+        generateQuestions();
+        document.getElementById('quizForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const userAnswers = [
+                parseInt(document.getElementById('answer1').value),
+                parseInt(document.getElementById('answer2').value),
+                parseInt(document.getElementById('answer3').value),
+                parseInt(document.getElementById('answer4').value),
+                parseInt(document.getElementById('answer5').value),
+                parseInt(document.getElementById('answer6').value),
+                parseInt(document.getElementById('answer7').value),
+                parseInt(document.getElementById('answer8').value),
+
+            ];
+
+            const model = await trainModel();
+            checkAnswers(model, userAnswers);
+        });
+    </script>
+</body>
+</html>
